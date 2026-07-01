@@ -64,16 +64,15 @@
         <div class="card">
           <h2>Telegram ingestion</h2>
           <p class="muted">
-            Авточтение каналов/чатов через Telethon. Настраивается через переменные окружения backend.
+            Авточтение каналов/чатов через Bot API (проще) или Telethon. Настраивается через переменные окружения backend.
           </p>
           <div id="telegramStatus" class="telegram-status">Проверка Telegram...</div>
           <details class="telegram-requirements">
             <summary>Что нужно, чтобы подключить Telegram</summary>
             <ul>
-              <li><code>TELEGRAM_API_ID</code></li>
-              <li><code>TELEGRAM_API_HASH</code></li>
-              <li><code>TELEGRAM_SESSION_STRING</code></li>
-              <li><code>TELEGRAM_SOURCES</code> (username/id каналов/чатов через запятую)</li>
+              <li><strong>Проще:</strong> <code>TELEGRAM_BOT_TOKEN</code> + <code>TELEGRAM_SOURCES</code></li>
+              <li><strong>Альтернатива:</strong> <code>TELEGRAM_API_ID</code> + <code>TELEGRAM_API_HASH</code> + <code>TELEGRAM_SESSION_STRING</code></li>
+              <li><code>TELEGRAM_SOURCES</code>: username/id/ссылки каналов и чатов через запятую</li>
             </ul>
           </details>
         </div>

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import UTC, datetime
 from typing import Any
+
+import httpx
 
 from app.schemas import ReportIn
 from app.settings import TelegramSettings
@@ -43,13 +46,18 @@ class TelegramIngestor:
         self.last_poll_at: datetime | None = None
         self.ingested_count = 0
         self._client: TelegramClient | None = None
+        self._http: httpx.AsyncClient | None = None
         self._stop_event = asyncio.Event()
         self._last_seen_message_id: dict[str, int] = {}
+        self._bot_offset = 0
 
     def status(self) -> dict[str, Any]:
         return {
             "enabled": self.settings.enabled,
             "configured": self.settings.is_configured,
+            "bot_configured": self.settings.is_bot_configured,
+            "telethon_configured": self.settings.is_telethon_configured,
+            "mode": self._mode(),
             "telethon_available": TELETHON_AVAILABLE,
             "running": self.running,
             "sources": self.settings.sources,
@@ -58,16 +66,22 @@ class TelegramIngestor:
             "last_error": self.last_error,
         }
 
+    def _mode(self) -> str:
+        if self.settings.is_bot_configured:
+            return "bot_api"
+        if self.settings.is_telethon_configured:
+            return "telethon"
+        return "none"
+
     async def stop(self) -> None:
         self._stop_event.set()
         if self._client:
             await self._client.disconnect()
+        if self._http:
+            await self._http.aclose()
 
     async def run_forever(self) -> None:
         if not self.settings.enabled:
-            return
-        if not TELETHON_AVAILABLE:
-            self.last_error = "telethon is not installed"
             return
         if not self.settings.is_configured:
             self.last_error = "telegram settings are incomplete"
@@ -75,28 +89,122 @@ class TelegramIngestor:
 
         self.running = True
         try:
-            self._client = TelegramClient(
-                StringSession(self.settings.session_string),
-                self.settings.api_id,
-                self.settings.api_hash,
-            )
-            await self._client.connect()
-            entities = [await self._client.get_entity(source) for source in self.settings.sources]
-
-            while not self._stop_event.is_set():
-                for entity in entities:
-                    await self._sync_entity(entity)
-                self.last_poll_at = datetime.now(UTC)
-                try:
-                    await asyncio.wait_for(self._stop_event.wait(), timeout=self.settings.poll_seconds)
-                except asyncio.TimeoutError:
-                    continue
+            if self.settings.is_bot_configured:
+                await self._run_bot_api_forever()
+            elif self.settings.is_telethon_configured:
+                await self._run_telethon_forever()
+            else:
+                self.last_error = "telegram settings are incomplete"
         except Exception as exc:  # pragma: no cover - depends on external Telegram I/O
             self.last_error = str(exc)
         finally:
             self.running = False
             if self._client:
                 await self._client.disconnect()
+            if self._http:
+                await self._http.aclose()
+
+    async def _run_bot_api_forever(self) -> None:
+        self._http = httpx.AsyncClient(timeout=60.0)
+        if self._bot_offset == 0:
+            bootstrap_updates = await self._bot_get_updates(timeout=1)
+            if bootstrap_updates:
+                self._bot_offset = max(int(update["update_id"]) for update in bootstrap_updates) + 1
+        while not self._stop_event.is_set():
+            updates = await self._bot_get_updates(timeout=max(self.settings.poll_seconds, 10))
+            for update in updates:
+                update_id = int(update["update_id"])
+                self._bot_offset = max(self._bot_offset, update_id + 1)
+                await self._ingest_bot_update(update)
+            self.last_poll_at = datetime.now(UTC)
+
+    async def _bot_get_updates(self, timeout: int) -> list[dict[str, Any]]:
+        if not self._http or not self.settings.bot_token:
+            return []
+        response = await self._http.get(
+            f"https://api.telegram.org/bot{self.settings.bot_token}/getUpdates",
+            params={
+                "timeout": timeout,
+                "offset": self._bot_offset if self._bot_offset else None,
+                "allowed_updates": json.dumps(
+                    ["message", "edited_message", "channel_post", "edited_channel_post"]
+                ),
+            },
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if not payload.get("ok"):
+            raise RuntimeError(f"telegram bot api error: {payload}")
+        return payload.get("result", [])
+
+    def _chat_allowed(self, chat: dict[str, Any]) -> bool:
+        allowed = set(self.settings.sources)
+        if not allowed:
+            return True
+        chat_id = str(chat.get("id", ""))
+        username = str(chat.get("username", "")).lower()
+        title = str(chat.get("title", "")).lower()
+        return bool(
+            chat_id in allowed
+            or username in allowed
+            or title in allowed
+            or f"@{username}" in allowed
+        )
+
+    async def _ingest_bot_update(self, update: dict[str, Any]) -> None:
+        message = (
+            update.get("channel_post")
+            or update.get("edited_channel_post")
+            or update.get("message")
+            or update.get("edited_message")
+        )
+        if not message:
+            return
+        chat = message.get("chat") or {}
+        if not self._chat_allowed(chat):
+            return
+        text = str(message.get("text") or message.get("caption") or "").strip()
+        if not text:
+            return
+        chat_id = str(chat.get("id", "unknown"))
+        message_id = int(message.get("message_id", 0))
+        observed_at_raw = message.get("date")
+        observed_at = (
+            datetime.fromtimestamp(observed_at_raw, tz=UTC)
+            if isinstance(observed_at_raw, int)
+            else None
+        )
+        source_label = str(chat.get("title") or chat.get("username") or chat_id)
+        report = ReportIn(
+            text=text,
+            source=f"tg:{source_label}",
+            source_message_id=f"{chat_id}:{message_id}",
+            observed_at=observed_at,
+        )
+        self.store.create_from_report(report)
+        self.ingested_count += 1
+        self.last_poll_at = datetime.now(UTC)
+
+    async def _run_telethon_forever(self) -> None:
+        if not TELETHON_AVAILABLE:
+            self.last_error = "telethon is not installed"
+            return
+        self._client = TelegramClient(
+            StringSession(self.settings.session_string),
+            self.settings.api_id,
+            self.settings.api_hash,
+        )
+        await self._client.connect()
+        entities = [await self._client.get_entity(source) for source in self.settings.sources]
+
+        while not self._stop_event.is_set():
+            for entity in entities:
+                await self._sync_entity(entity)
+            self.last_poll_at = datetime.now(UTC)
+            try:
+                await asyncio.wait_for(self._stop_event.wait(), timeout=self.settings.poll_seconds)
+            except asyncio.TimeoutError:
+                continue
 
     async def _sync_entity(self, entity: Any) -> None:
         if not self._client:

@@ -63,3 +63,4 @@ def test_telegram_status_endpoint_exists() -> None:
     body = response.json()
     assert "enabled" in body
     assert "configured" in body
+    assert body["mode"] in {"none", "bot_api", "telethon"}

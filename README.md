@@ -49,14 +49,27 @@ Set environment variables before starting backend:
 
 ```bash
 export TELEGRAM_ENABLED=1
+export TELEGRAM_BOT_TOKEN=<your_bot_token>
+export TELEGRAM_SOURCES="monitor_ukr,cxidua,war_monitor,-1001234567890"
+export TELEGRAM_POLL_SECONDS=20
+```
+
+Simple mode notes (recommended):
+
+- Bot must be added to target channels/chats to read their updates.
+- For groups, disable bot privacy in BotFather to read all messages.
+- Sources can be usernames, numeric chat IDs, or `https://t.me/...` links.
+
+Alternative advanced mode (user session via Telethon):
+
+```bash
 export TELEGRAM_API_ID=<your_api_id>
 export TELEGRAM_API_HASH=<your_api_hash>
 export TELEGRAM_SESSION_STRING=<your_telethon_string_session>
 export TELEGRAM_SOURCES="channel_username,chat_username_or_id"
-export TELEGRAM_POLL_SECONDS=20
 ```
 
-Notes:
+General notes:
 
 - You must have access rights to listed channels/chats in Telegram.
 - First run establishes the cursor and then ingests only new messages.

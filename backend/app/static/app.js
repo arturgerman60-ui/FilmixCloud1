@@ -137,13 +137,19 @@ function setTelegramStatus(status) {
   }
   if (status.running) {
     telegramStatus.classList.add("ok");
-    telegramStatus.textContent = `Подключено: ${status.sources.join(", ")} · сообщений: ${status.ingested_count}`;
+    const modeLabel = status.mode === "bot_api" ? "Bot API" : "Telethon";
+    telegramStatus.textContent = `${modeLabel}: ${status.sources.join(", ")} · сообщений: ${status.ingested_count}`;
     return;
   }
-  if (!status.configured || !status.telethon_available) {
+  if (!status.configured) {
     telegramStatus.classList.add("warn");
     telegramStatus.textContent =
-      "Telegram включен, но не готов: проверь TELEGRAM_API_ID/HASH, SESSION_STRING, SOURCES и пакет telethon.";
+      "Telegram включен, но не готов: укажи TELEGRAM_BOT_TOKEN + TELEGRAM_SOURCES (или TELETHON-настройки).";
+    return;
+  }
+  if (status.mode === "telethon" && !status.telethon_available) {
+    telegramStatus.classList.add("warn");
+    telegramStatus.textContent = "Режим Telethon выбран, но пакет telethon не установлен.";
     return;
   }
   telegramStatus.classList.add("error");
