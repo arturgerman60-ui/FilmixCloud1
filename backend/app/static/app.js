@@ -87,6 +87,18 @@ L.circle(kharkivCenter, {
 const markerLayer = L.layerGroup().addTo(map);
 const directionLayer = L.layerGroup().addTo(map);
 
+const directionLabels = {
+  north: "север",
+  northeast: "северо-восток",
+  east: "восток",
+  southeast: "юго-восток",
+  south: "юг",
+  southwest: "юго-запад",
+  west: "запад",
+  northwest: "северо-запад",
+  unknown: "не определено",
+};
+
 function buildFilters() {
   filtersEl.innerHTML = "";
   Object.entries(threatLabels).forEach(([value, label]) => {
@@ -181,9 +193,10 @@ function markerHtml(event) {
 }
 
 function directionText(event) {
-  if (event.direction === "unknown") return "направление не определено";
+  const directionLabel = directionLabels[event.direction] || event.direction || "не определено";
+  if (event.direction === "unknown") return `направление: ${directionLabel}`;
   const spread = Number(event.direction_uncertainty_deg || 180);
-  return `${event.direction} ±${spread}°`;
+  return `${directionLabel} ±${spread}°`;
 }
 
 function addMarker(event) {
@@ -286,6 +299,13 @@ async function refresh() {
   }
 }
 
+function refreshMapLayout() {
+  map.invalidateSize({ animate: false });
+  if (window.innerWidth <= 900) {
+    map.fitBounds(kharkivBounds, { padding: [12, 12] });
+  }
+}
+
 async function submitReport(event) {
   event.preventDefault();
   const text = textInput.value.trim();
@@ -325,4 +345,16 @@ document.getElementById("refreshButton").addEventListener("click", refresh);
 
 buildFilters();
 refresh();
+setTimeout(refreshMapLayout, 200);
+window.addEventListener("resize", () => {
+  setTimeout(refreshMapLayout, 120);
+});
+window.addEventListener("orientationchange", () => {
+  setTimeout(refreshMapLayout, 200);
+});
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    setTimeout(refreshMapLayout, 120);
+  }
+});
 setInterval(refresh, 10000);

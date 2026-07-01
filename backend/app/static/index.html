@@ -7,8 +7,6 @@
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIINfQ0K5QbLw3Ww2jT2Y8RkpCBw5rj2K4s="
-      crossorigin=""
     />
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
@@ -26,6 +24,15 @@
 
     <main class="layout">
       <section class="panel">
+        <div class="card quickstart">
+          <h2>Быстрый старт (телефон)</h2>
+          <ol>
+            <li>Нажми <strong>Демо</strong>, чтобы увидеть как это выглядит.</li>
+            <li>Вставляй сообщения из источников в форму ниже.</li>
+            <li>Смотри маркеры и направление на карте как прогноз <strong>±</strong>.</li>
+          </ol>
+        </div>
+
         <div class="card">
           <h2>Добавить сообщение</h2>
           <p class="muted">
@@ -60,6 +67,15 @@
             Авточтение каналов/чатов через Telethon. Настраивается через переменные окружения backend.
           </p>
           <div id="telegramStatus" class="telegram-status">Проверка Telegram...</div>
+          <details class="telegram-requirements">
+            <summary>Что нужно, чтобы подключить Telegram</summary>
+            <ul>
+              <li><code>TELEGRAM_API_ID</code></li>
+              <li><code>TELEGRAM_API_HASH</code></li>
+              <li><code>TELEGRAM_SESSION_STRING</code></li>
+              <li><code>TELEGRAM_SOURCES</code> (username/id каналов/чатов через запятую)</li>
+            </ul>
+          </details>
         </div>
 
         <div class="card">
@@ -86,8 +102,6 @@
 
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-      crossorigin=""
     ></script>
     <script src="/static/app.js"></script>
   </body>

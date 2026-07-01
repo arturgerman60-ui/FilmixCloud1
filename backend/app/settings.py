@@ -2,6 +2,18 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - optional at import time
+    load_dotenv = None  # type: ignore[assignment]
+
+
+if load_dotenv:
+    backend_env = Path(__file__).resolve().parents[1] / ".env"
+    load_dotenv(backend_env)
+    load_dotenv()
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
