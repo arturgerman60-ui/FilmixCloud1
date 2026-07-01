@@ -30,6 +30,7 @@ const threatBadge = {
   missile: "MSL",
   unknown: "UNK",
 };
+const POLL_INTERVAL_MS = 5000;
 
 const demoReports = [
   "Шахед у Харківській області курсом на південний захід",
@@ -203,9 +204,27 @@ function isKharkivFocused(event) {
 }
 
 function markerHtml(event) {
-  const shortLabel = threatBadge[event.threat_type] || "UNK";
   const color = threatColors[event.threat_type] || threatColors.unknown;
-  return `<div class="marker" style="background:${color}">${shortLabel}</div>`;
+  const glyphs = {
+    shahed: '<path d="M4 22L20 4L36 22L20 30Z" />',
+    uav: '<path d="M4 18L20 10L36 18L20 26Z" /><path d="M20 10V30" />',
+    gerbera:
+      '<circle cx="20" cy="20" r="4" /><circle cx="20" cy="9" r="3" /><circle cx="30" cy="14" r="3" /><circle cx="30" cy="26" r="3" /><circle cx="20" cy="31" r="3" /><circle cx="10" cy="26" r="3" /><circle cx="10" cy="14" r="3" />',
+    kab: '<rect x="14" y="6" width="12" height="20" rx="4" /><path d="M20 26V34M15 31H25" />',
+    fpv: '<circle cx="20" cy="20" r="6" /><path d="M20 4V12M20 28V36M4 20H12M28 20H36" />',
+    recon_drone: '<path d="M6 20C10 10 30 10 34 20C30 30 10 30 6 20Z" /><circle cx="20" cy="20" r="4" />',
+    missile: '<path d="M20 4L28 16L20 36L12 16Z" />',
+    unknown: '<path d="M20 6C26 6 30 10 30 16C30 20 28 22 24 25C22 26 21 27 21 29H17C17 25 18 23 21 21C24 19 26 17 26 15C26 12 24 10 20 10C16 10 14 12 13 16L9 15C10 10 14 6 20 6Z" /><circle cx="19" cy="33" r="2" />',
+  };
+  const svg = glyphs[event.threat_type] || glyphs.unknown;
+  const fallback = threatBadge[event.threat_type] || "UNK";
+  return `
+    <div class="marker marker--${event.threat_type}" style="--marker-color:${color}">
+      <div class="marker-pulse"></div>
+      <svg viewBox="0 0 40 40" aria-hidden="true">${svg}</svg>
+      <span>${fallback}</span>
+    </div>
+  `;
 }
 
 function directionText(event) {
@@ -242,9 +261,12 @@ function addDirection(feature) {
   L.geoJSON(feature, {
     style: {
       color: threatColors[type] || threatColors.unknown,
-      dashArray: "8 6",
-      opacity: 0.9,
-      weight: 4,
+      dashArray: "12 10",
+      lineCap: "round",
+      lineJoin: "round",
+      opacity: 0.95,
+      weight: 5,
+      className: "trajectory-flow",
     },
   }).addTo(directionLayer);
 }
@@ -306,7 +328,12 @@ async function refresh() {
       .filter((feature) => visibleEventIds.has(feature.properties.id))
       .forEach(addDirection);
     renderFeed(events);
-    setStatus(true, `API онлайн · Харьков фокус: ${events.length} из ${allEvents.length}`);
+    setStatus(
+      true,
+      `API онлайн · Харьков фокус: ${events.length} из ${allEvents.length} · автообновление ${Math.round(
+        POLL_INTERVAL_MS / 1000,
+      )}с`,
+    );
     setTelegramStatus(telegram);
   } catch (error) {
     console.error(error);
@@ -373,4 +400,4 @@ document.addEventListener("visibilitychange", () => {
     setTimeout(refreshMapLayout, 120);
   }
 });
-setInterval(refresh, 10000);
+setInterval(refresh, POLL_INTERVAL_MS);

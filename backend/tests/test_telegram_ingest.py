@@ -25,6 +25,7 @@ def test_extract_web_messages_from_public_channel_html() -> None:
         session_string=None,
         sources=["monitor_ukr"],
         poll_seconds=20,
+        bootstrap_limit=20,
     )
     ingestor = TelegramIngestor(store=EventStore(), settings=settings)
 

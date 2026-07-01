@@ -212,7 +212,7 @@ class TelegramIngestor:
 
         while not self._stop_event.is_set():
             for entity in entities:
-                await self._sync_entity(entity)
+                await self._sync_entity(entity, bootstrap_on_first_seen=True)
             self.last_poll_at = datetime.now(UTC)
             try:
                 await asyncio.wait_for(self._stop_event.wait(), timeout=self.settings.poll_seconds)
@@ -243,7 +243,11 @@ class TelegramIngestor:
             return
         source_key = f"web:{source}"
         if source_key not in self._last_seen_message_id:
-            self._last_seen_message_id[source_key] = max(message["message_id"] for message in messages)
+            ordered = sorted(messages, key=lambda item: item["message_id"])
+            if self.settings.bootstrap_limit > 0:
+                for message in ordered[-self.settings.bootstrap_limit :]:
+                    self._ingest_web_message(message)
+            self._last_seen_message_id[source_key] = max(message["message_id"] for message in ordered)
             return
         last_seen = self._last_seen_message_id[source_key]
         incoming = sorted(
@@ -306,7 +310,7 @@ class TelegramIngestor:
         self.store.create_from_report(report)
         self.ingested_count += 1
 
-    async def _sync_entity(self, entity: Any) -> None:
+    async def _sync_entity(self, entity: Any, bootstrap_on_first_seen: bool = False) -> None:
         if not self._client:
             return
         entity_key = _entity_key(entity)
@@ -314,7 +318,22 @@ class TelegramIngestor:
         if not messages:
             return
         if entity_key not in self._last_seen_message_id:
-            self._last_seen_message_id[entity_key] = max(getattr(message, "id", 0) for message in messages)
+            ordered = sorted(messages, key=lambda message: getattr(message, "id", 0))
+            if bootstrap_on_first_seen and self.settings.bootstrap_limit > 0:
+                for message in ordered[-self.settings.bootstrap_limit :]:
+                    text = str(getattr(message, "message", "") or "").strip()
+                    if not text:
+                        continue
+                    source_message_id = f"{entity_key}:{message.id}"
+                    report = ReportIn(
+                        text=text,
+                        source=f"tg:{_entity_label(entity)}",
+                        source_message_id=source_message_id,
+                        observed_at=getattr(message, "date", None),
+                    )
+                    self.store.create_from_report(report)
+                    self.ingested_count += 1
+            self._last_seen_message_id[entity_key] = max(getattr(message, "id", 0) for message in ordered)
             return
         last_seen = self._last_seen_message_id[entity_key]
         incoming = sorted(

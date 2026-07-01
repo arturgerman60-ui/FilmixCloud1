@@ -123,16 +123,36 @@ def risk_geometry(
     coordinate: Coordinate | None,
     direction: Direction,
     radius_km: float,
+    direction_uncertainty_deg: int = 60,
 ) -> dict:
     if coordinate is None:
         return {"type": "GeometryCollection", "geometries": []}
 
     if direction in DIRECTION_BEARINGS:
-        end = destination_point(coordinate, DIRECTION_BEARINGS[direction], max(radius_km * 2.5, 25.0))
+        base_bearing = DIRECTION_BEARINGS[direction]
+        spread = max(8.0, min(35.0, direction_uncertainty_deg / 2.5))
+        path_distance = max(radius_km * 2.8, 25.0)
+        waypoint_one = destination_point(
+            coordinate,
+            base_bearing + spread * 0.35,
+            path_distance * 0.34,
+        )
+        waypoint_two = destination_point(
+            coordinate,
+            base_bearing - spread * 0.25,
+            path_distance * 0.67,
+        )
+        end = destination_point(
+            coordinate,
+            base_bearing + spread * 0.12,
+            path_distance,
+        )
         return {
             "type": "LineString",
             "coordinates": [
                 [coordinate.longitude, coordinate.latitude],
+                [waypoint_one.longitude, waypoint_one.latitude],
+                [waypoint_two.longitude, waypoint_two.latitude],
                 [end.longitude, end.latitude],
             ],
         }

@@ -101,7 +101,12 @@ def clear_events() -> None:
 def events_geojson(include_expired: bool = False) -> GeoJsonFeatureCollection:
     features: list[GeoJsonFeature] = []
     for event in store.list_active(include_expired=include_expired):
-        geometry = risk_geometry(event.coordinate, event.direction, event.risk_radius_km)
+        geometry = risk_geometry(
+            event.coordinate,
+            event.direction,
+            event.risk_radius_km,
+            direction_uncertainty_deg=event.direction_uncertainty_deg,
+        )
         features.append(
             GeoJsonFeature(
                 geometry=geometry,

@@ -51,7 +51,8 @@ Set environment variables before starting backend:
 export TELEGRAM_ENABLED=1
 export TELEGRAM_BOT_TOKEN=<your_bot_token>
 export TELEGRAM_SOURCES="monitor_ukr,cxidua,war_monitor,-1001234567890"
-export TELEGRAM_POLL_SECONDS=20
+export TELEGRAM_POLL_SECONDS=5
+export TELEGRAM_BOOTSTRAP_LIMIT=20
 ```
 
 Simple mode notes (recommended):
@@ -74,15 +75,18 @@ No-bot fallback for public channels:
 ```bash
 export TELEGRAM_ENABLED=1
 export TELEGRAM_SOURCES="monitor_ukr,cxidua,war_monitor,https://t.me/another_public_channel"
-export TELEGRAM_POLL_SECONDS=20
+export TELEGRAM_POLL_SECONDS=5
+export TELEGRAM_BOOTSTRAP_LIMIT=20
 ```
 
 In this mode backend polls `https://t.me/s/<channel>` directly and ingests new public posts.
+On startup it also ingests the latest `TELEGRAM_BOOTSTRAP_LIMIT` posts per source to avoid an empty map.
 
 General notes:
 
 - You must have access rights to listed channels/chats in Telegram.
 - First run establishes the cursor and then ingests only new messages.
+- `TELEGRAM_POLL_SECONDS` controls refresh cadence (default `5` seconds).
 - The UI shows ingestion state in "Telegram ingestion" block.
 
 Seed a demo report from terminal:

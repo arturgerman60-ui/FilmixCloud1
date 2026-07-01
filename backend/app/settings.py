@@ -52,6 +52,7 @@ class TelegramSettings:
     session_string: str | None
     sources: list[str]
     poll_seconds: int
+    bootstrap_limit: int
 
     @property
     def is_configured(self) -> bool:
@@ -91,5 +92,6 @@ def load_telegram_settings() -> TelegramSettings:
         api_hash=os.getenv("TELEGRAM_API_HASH"),
         session_string=os.getenv("TELEGRAM_SESSION_STRING"),
         sources=[_normalize_source(item) for item in _split_csv("TELEGRAM_SOURCES")],
-        poll_seconds=max(10, int(os.getenv("TELEGRAM_POLL_SECONDS", "20"))),
+        poll_seconds=max(5, int(os.getenv("TELEGRAM_POLL_SECONDS", "5"))),
+        bootstrap_limit=max(0, int(os.getenv("TELEGRAM_BOOTSTRAP_LIMIT", "20"))),
     )
