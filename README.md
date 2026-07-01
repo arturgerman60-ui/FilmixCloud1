@@ -1,111 +1,52 @@
-# Private Local Threat Map MVP
+# Ukraine Air Threat Monitor 2026
 
-Closed, personal situational-awareness MVP that runs as a local website.
+Modern real-time civil air-threat monitoring dashboard for Ukraine.
 
-Open one local link, ingest reports (manual or Telegram), and see approximate civil-risk markers/directions on a map.
+## Stack
 
-This repository contains:
+- **Frontend:** Next.js 16 (App Router) + TypeScript + Tailwind CSS
+- **Map:** Leaflet + react-leaflet (dark Carto basemap)
+- **Realtime:** Server-Sent Events (`/api/stream`)
+- **Ingestion:** public Telegram channel web polling (`https://t.me/s/<channel>`)
 
-- `backend/` - FastAPI app that serves both the web UI and API.
-- `backend/app/static/` - local website with map, report form, filters, and event feed.
+## Features
 
-## Safety boundary
+- Auto-ingest from public Telegram OSINT/monitoring channels
+- Bootstrap last N posts per source on startup
+- 5-second backend polling + 5-second SSE/UI refresh
+- Predictive trajectories with speed by threat type
+- Animated moving markers along paths
+- Sidebar with ETA, confidence, probable targets
+- Threat filters, 2-hour history, optional alert sound
+- Mobile-friendly dark cyber-military UI
 
-The app is designed for civil alerts and approximate risk visualization. It intentionally models reports as
-probabilistic zones/corridors with confidence and expiry, not as exact targeting, interception, or weapons guidance data.
+## Safety note
 
-## MVP capabilities
+Trajectories are **predictive approximations with uncertainty**, not exact operational targeting data.
 
-- Run locally at `http://127.0.0.1:8000`.
-- Parse text reports from the web form, API calls, or Telegram polling.
-- Detect threat type: `shahed`, `uav`, `gerbera`, `kab`, `fpv`, `recon_drone`, `missile`, `unknown`.
-- Extract known locations and directions from Ukrainian/Russian-language messages.
-- Show direction as approximate heading with angular uncertainty (`±`), not exact route.
-- Produce event records and GeoJSON features for a map.
-- Render approximate markers and direction lines on a Leaflet map with Kharkiv oblast focus.
-- Keep all deployment private: local machine or locked-down VPS.
-
-## Local website start
-
-```bash
-cd backend
-python -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Then open:
-
-- Website: `http://127.0.0.1:8000`
-- API docs: `http://127.0.0.1:8000/docs`
-- Events API: `http://127.0.0.1:8000/api/events`
-- GeoJSON API: `http://127.0.0.1:8000/api/events.geojson`
-- Telegram status: `http://127.0.0.1:8000/api/telegram/status`
-
-## Telegram ingestion setup
-
-Set environment variables before starting backend:
+## Run locally
 
 ```bash
-export TELEGRAM_ENABLED=1
-export TELEGRAM_BOT_TOKEN=<your_bot_token>
-export TELEGRAM_SOURCES="monitor_ukr,cxidua,war_monitor,-1001234567890"
-export TELEGRAM_POLL_SECONDS=5
-export TELEGRAM_BOOTSTRAP_LIMIT=20
+cd web
+npm install
+npm run dev
 ```
 
-Simple mode notes (recommended):
+Open: `http://127.0.0.1:3000`
 
-- Bot must be added to target channels/chats to read their updates.
-- For groups, disable bot privacy in BotFather to read all messages.
-- Sources can be usernames, numeric chat IDs, or `https://t.me/...` links.
-
-Alternative advanced mode (user session via Telethon):
+## Environment
 
 ```bash
-export TELEGRAM_API_ID=<your_api_id>
-export TELEGRAM_API_HASH=<your_api_hash>
-export TELEGRAM_SESSION_STRING=<your_telethon_string_session>
-export TELEGRAM_SOURCES="channel_username,chat_username_or_id"
+INGEST_POLL_SECONDS=5
+INGEST_BOOTSTRAP_LIMIT=20
 ```
 
-No-bot fallback for public channels:
+## API
 
-```bash
-export TELEGRAM_ENABLED=1
-export TELEGRAM_SOURCES="monitor_ukr,cxidua,war_monitor,https://t.me/another_public_channel"
-export TELEGRAM_POLL_SECONDS=5
-export TELEGRAM_BOOTSTRAP_LIMIT=20
-```
+- `GET /api/events` — full dashboard snapshot JSON
+- `GET /api/stream` — SSE realtime updates
+- `GET /api/health` — ingestion status
 
-In this mode backend polls `https://t.me/s/<channel>` directly and ingests new public posts.
-On startup it also ingests the latest `TELEGRAM_BOOTSTRAP_LIMIT` posts per source to avoid an empty map.
+## Legacy backend
 
-General notes:
-
-- You must have access rights to listed channels/chats in Telegram.
-- First run establishes the cursor and then ingests only new messages.
-- `TELEGRAM_POLL_SECONDS` controls refresh cadence (default `5` seconds).
-- The UI shows ingestion state in "Telegram ingestion" block.
-
-Seed a demo report from terminal:
-
-```bash
-curl -X POST http://localhost:8000/api/reports \
-  -H 'Content-Type: application/json' \
-  -d '{"text":"Шахед через Миколаївщину курсом на північний захід","source":"demo"}'
-```
-
-Or paste this into the site form:
-
-```text
-Шахед через Миколаївщину курсом на північний захід
-```
-
-## Next production steps
-
-1. Replace the demo gazetteer with a complete geocoding source and PostGIS persistence.
-2. Add private authentication before exposing the site outside localhost.
-3. Add push/browser notifications for selected regions.
-4. Run the backend on a locked-down VPS over HTTPS if remote access is needed.
+The older Python FastAPI MVP remains in `backend/` for reference.

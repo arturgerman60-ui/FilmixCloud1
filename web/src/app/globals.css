@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+:root {
+  --background: #04070f;
+  --foreground: #edf4ff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.glass-panel {
+  backdrop-filter: blur(16px);
+  background: linear-gradient(
+    180deg,
+    rgba(10, 18, 34, 0.82),
+    rgba(8, 12, 24, 0.72)
+  );
+  border: 1px solid rgba(120, 220, 255, 0.12);
+}
+
+.particles::before,
+.particles::after {
+  animation: drift 18s ease-in-out infinite alternate;
+  content: "";
+  filter: blur(70px);
+  position: absolute;
+}
+
+.particles::before {
+  background: radial-gradient(circle, rgba(0, 255, 255, 0.16), transparent 70%);
+  height: 360px;
+  left: -80px;
+  top: -60px;
+  width: 360px;
+}
+
+.particles::after {
+  animation-duration: 22s;
+  background: radial-gradient(circle, rgba(255, 0, 110, 0.14), transparent 70%);
+  bottom: -120px;
+  height: 420px;
+  right: -100px;
+  width: 420px;
+}
+
+.trajectory-line {
+  animation: dash 1.2s linear infinite;
+}
+
+.pulse-marker {
+  animation: pulse 1.8s ease-out infinite;
+}
+
+.leaflet-container {
+  background: #08111f;
+  font-family: inherit;
+}
+
+@keyframes drift {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(60px, 30px);
+  }
+}
+
+@keyframes dash {
+  from {
+    stroke-dashoffset: 36;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(0, 255, 255, 0.7));
+  }
+  70% {
+    filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0));
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(0, 255, 255, 0));
+  }
+}
