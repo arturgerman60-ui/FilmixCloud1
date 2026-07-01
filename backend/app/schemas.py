@@ -14,6 +14,7 @@ class ThreatType(StrEnum):
     GERBERA = "gerbera"
     KAB = "kab"
     FPV = "fpv"
+    RECON_DRONE = "recon_drone"
     MISSILE = "missile"
     UNKNOWN = "unknown"
 
@@ -48,6 +49,7 @@ class AnalyzedReport(BaseModel):
     primary_location: str | None
     coordinate: Coordinate | None
     direction: Direction
+    direction_uncertainty_deg: int = Field(ge=0, le=180)
     confidence: float = Field(ge=0.0, le=1.0)
     rationale: list[str]
 
@@ -62,6 +64,7 @@ class ThreatEvent(BaseModel):
     primary_location: str | None
     coordinate: Coordinate | None
     direction: Direction
+    direction_uncertainty_deg: int = Field(ge=0, le=180)
     confidence: float = Field(ge=0.0, le=1.0)
     risk_radius_km: float
     observed_at: datetime

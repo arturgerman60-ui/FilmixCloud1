@@ -209,6 +209,31 @@ button.small {
   margin-top: 6px;
 }
 
+.telegram-status {
+  background: #091426;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 10px 12px;
+}
+
+.telegram-status.ok {
+  border-color: rgba(100, 217, 147, 0.55);
+  color: #9de7b8;
+}
+
+.telegram-status.warn {
+  border-color: rgba(255, 209, 102, 0.55);
+  color: #ffe0a6;
+}
+
+.telegram-status.error {
+  border-color: rgba(255, 104, 115, 0.55);
+  color: #ffb1b7;
+}
+
 .map-wrap {
   min-width: 0;
   position: relative;
@@ -239,7 +264,7 @@ button.small {
   border-radius: 50%;
   color: #061120;
   display: flex;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 900;
   height: 34px;
   justify-content: center;

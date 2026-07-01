@@ -11,6 +11,10 @@ THREAT_PATTERNS: list[tuple[ThreatType, tuple[str, ...]]] = [
     (ThreatType.GERBERA, ("гербера", "gerbera")),
     (ThreatType.KAB, ("каб", "керована авіабомба", "упаб", "guided bomb")),
     (ThreatType.FPV, ("fpv", "фпв")),
+    (
+        ThreatType.RECON_DRONE,
+        ("разведдрон", "развед дрон", "розвіддрон", "розвід дрон", "recon drone"),
+    ),
     (ThreatType.MISSILE, ("ракета", "missile", "крилата", "баллист")),
     (ThreatType.UAV, ("бпла", "бпіл", "uav", "дрон", "безпілот")),
 ]
@@ -92,6 +96,13 @@ def confidence_score(
     return round(min(score, 0.95), 2)
 
 
+def direction_uncertainty_deg(direction: Direction, confidence: float) -> int:
+    if direction == Direction.UNKNOWN:
+        return 180
+    uncertainty = int(round(90 - confidence * 60))
+    return max(20, min(90, uncertainty))
+
+
 def analyze_report(text: str, source_weight: float = 0.65) -> AnalyzedReport:
     threat_type, threat_match = detect_threat_type(text)
     direction, direction_match = detect_direction(text)
@@ -99,6 +110,7 @@ def analyze_report(text: str, source_weight: float = 0.65) -> AnalyzedReport:
     primary_location = locations[0] if locations else None
     coordinate = lookup_coordinate(primary_location) if primary_location else None
     confidence = confidence_score(threat_type, locations, direction, source_weight=source_weight)
+    uncertainty_deg = direction_uncertainty_deg(direction, confidence)
 
     rationale: list[str] = []
     if threat_match:
@@ -107,6 +119,7 @@ def analyze_report(text: str, source_weight: float = 0.65) -> AnalyzedReport:
         rationale.append(f"matched location: {primary_location}")
     if direction_match:
         rationale.append(f"matched direction term: {direction_match}")
+    rationale.append(f"direction uncertainty: ±{uncertainty_deg}°")
     if not rationale:
         rationale.append("no structured markers found; kept as unknown low-confidence report")
 
@@ -116,6 +129,7 @@ def analyze_report(text: str, source_weight: float = 0.65) -> AnalyzedReport:
         primary_location=primary_location,
         coordinate=coordinate,
         direction=direction,
+        direction_uncertainty_deg=uncertainty_deg,
         confidence=confidence,
         rationale=rationale,
     )

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 from fastapi import FastAPI, HTTPException, Query
@@ -17,20 +20,37 @@ from app.schemas import (
     ThreatEvent,
     ThreatType,
 )
+from app.settings import load_telegram_settings
 from app.store import EventStore
+from app.telegram_ingest import TelegramIngestor
 
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
+store = EventStore()
+telegram_settings = load_telegram_settings()
+telegram_ingestor = TelegramIngestor(store=store, settings=telegram_settings)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    task: asyncio.Task[Any] | None = None
+    if telegram_settings.enabled:
+        task = asyncio.create_task(telegram_ingestor.run_forever())
+    try:
+        yield
+    finally:
+        if task:
+            await telegram_ingestor.stop()
+            await task
 
 app = FastAPI(
     title="Private Local Threat Map",
     description="Local civil-risk visualization MVP. Shows approximate reports, not exact operational tracks.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
-store = EventStore()
 
 
 @app.get("/", include_in_schema=False)
@@ -41,6 +61,11 @@ def index() -> FileResponse:
 @app.get("/api/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     return HealthResponse(status="ok", event_count=len(store.list_active(include_expired=True)))
+
+
+@app.get("/api/telegram/status")
+def telegram_status() -> dict[str, Any]:
+    return telegram_ingestor.status()
 
 
 @app.post("/api/reports", response_model=ThreatEvent, status_code=201)
@@ -86,6 +111,7 @@ def events_geojson(include_expired: bool = False) -> GeoJsonFeatureCollection:
                     "source": event.source,
                     "confidence": event.confidence,
                     "direction": event.direction.value,
+                    "direction_uncertainty_deg": event.direction_uncertainty_deg,
                     "risk_radius_km": event.risk_radius_km,
                     "primary_location": event.primary_location,
                     "observed_at": event.observed_at.isoformat(),

@@ -4,6 +4,7 @@ const threatLabels = {
   gerbera: "Гербера",
   kab: "КАБ",
   fpv: "FPV",
+  recon_drone: "Развед. дрон",
   missile: "Ракета",
   unknown: "Неизв.",
 };
@@ -14,15 +15,28 @@ const threatColors = {
   gerbera: "#7bd88f",
   kab: "#f78c6b",
   fpv: "#c792ea",
+  recon_drone: "#7ad3ff",
   missile: "#ff4d9d",
   unknown: "#9aa6b2",
 };
 
+const threatBadge = {
+  shahed: "SHD",
+  uav: "UAV",
+  gerbera: "GRB",
+  kab: "KAB",
+  fpv: "FPV",
+  recon_drone: "RCN",
+  missile: "MSL",
+  unknown: "UNK",
+};
+
 const demoReports = [
-  "Шахед через Миколаївщину курсом на північний захід",
-  "БПЛА в районі Кременчук, ймовірно на Полтаву",
+  "Шахед у Харківській області курсом на південний захід",
+  "Розвіддрон біля Чугуїв, напрямок на Харків",
+  "FPV дрон у напрямку Купянськ",
   "КАБ у напрямку Харківського району",
-  "Гербера біля Одеси, напрямок на північ",
+  "Гербера над Ізюмом, курс на північ",
 ];
 
 const enabledThreats = new Set(Object.keys(threatLabels));
@@ -33,14 +47,41 @@ const textInput = document.getElementById("textInput");
 const sourceInput = document.getElementById("sourceInput");
 const apiStatus = document.getElementById("apiStatus");
 const apiStatusText = document.getElementById("apiStatusText");
+const telegramStatus = document.getElementById("telegramStatus");
+
+const kharkivBounds = [
+  [48.55, 34.65],
+  [50.55, 38.2],
+];
+const kharkivCenter = [49.9935, 36.2304];
 
 const map = L.map("map", {
   zoomControl: true,
-}).setView([49.0, 32.0], 6);
+}).setView(kharkivCenter, 8);
 
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
   maxZoom: 18,
-  attribution: "&copy; OpenStreetMap contributors",
+  attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+}).addTo(map);
+map.fitBounds(kharkivBounds, { padding: [18, 18] });
+map.setMaxBounds([
+  [44.0, 21.5],
+  [53.0, 41.5],
+]);
+
+L.rectangle(kharkivBounds, {
+  color: "#4da3ff",
+  weight: 2,
+  opacity: 0.8,
+  fillOpacity: 0.08,
+}).addTo(map);
+
+L.circle(kharkivCenter, {
+  radius: 42000,
+  color: "#4da3ff",
+  weight: 1.5,
+  opacity: 0.8,
+  fillOpacity: 0.05,
 }).addTo(map);
 
 const markerLayer = L.layerGroup().addTo(map);
@@ -74,6 +115,29 @@ function setStatus(online, text) {
   apiStatusText.textContent = text;
 }
 
+function setTelegramStatus(status) {
+  telegramStatus.classList.remove("ok", "warn", "error");
+  if (!status || !status.enabled) {
+    telegramStatus.classList.add("warn");
+    telegramStatus.textContent =
+      "Telegram ingestion выключен. Включи TELEGRAM_ENABLED=1 и заполни TELEGRAM_* переменные.";
+    return;
+  }
+  if (status.running) {
+    telegramStatus.classList.add("ok");
+    telegramStatus.textContent = `Подключено: ${status.sources.join(", ")} · сообщений: ${status.ingested_count}`;
+    return;
+  }
+  if (!status.configured || !status.telethon_available) {
+    telegramStatus.classList.add("warn");
+    telegramStatus.textContent =
+      "Telegram включен, но не готов: проверь TELEGRAM_API_ID/HASH, SESSION_STRING, SOURCES и пакет telethon.";
+    return;
+  }
+  telegramStatus.classList.add("error");
+  telegramStatus.textContent = `Telegram остановлен: ${status.last_error || "unknown error"}`;
+}
+
 function formatTime(value) {
   return new Intl.DateTimeFormat("ru", {
     hour: "2-digit",
@@ -82,11 +146,44 @@ function formatTime(value) {
   }).format(new Date(value));
 }
 
+function inKharkivBounds(coordinate) {
+  if (!coordinate) return false;
+  const [south, west] = kharkivBounds[0];
+  const [north, east] = kharkivBounds[1];
+  return (
+    coordinate.latitude >= south &&
+    coordinate.latitude <= north &&
+    coordinate.longitude >= west &&
+    coordinate.longitude <= east
+  );
+}
+
+function isKharkivFocused(event) {
+  if (event.coordinate && inKharkivBounds(event.coordinate)) return true;
+  const location = (event.primary_location || "").toLowerCase();
+  return (
+    location.includes("харків") ||
+    location.includes("харьков") ||
+    location.includes("изюм") ||
+    location.includes("ізюм") ||
+    location.includes("чугуев") ||
+    location.includes("чугуїв") ||
+    location.includes("купян") ||
+    location.includes("балакле") ||
+    location.includes("балаклі")
+  );
+}
+
 function markerHtml(event) {
-  const label = threatLabels[event.threat_type] || "UNK";
-  const shortLabel = label.length > 5 ? label.slice(0, 5) : label;
+  const shortLabel = threatBadge[event.threat_type] || "UNK";
   const color = threatColors[event.threat_type] || threatColors.unknown;
   return `<div class="marker" style="background:${color}">${shortLabel}</div>`;
+}
+
+function directionText(event) {
+  if (event.direction === "unknown") return "направление не определено";
+  const spread = Number(event.direction_uncertainty_deg || 180);
+  return `${event.direction} ±${spread}°`;
 }
 
 function addMarker(event) {
@@ -101,6 +198,7 @@ function addMarker(event) {
     .bindPopup(
       `<strong>${threatLabels[event.threat_type] || event.threat_type}</strong><br />
        ${event.primary_location || "Локация не распознана"}<br />
+       Направление: ${directionText(event)}<br />
        Уверенность: ${Math.round(event.confidence * 100)}%<br />
        Источник: ${event.source}<br />
        <small>${event.raw_text}</small>`,
@@ -135,7 +233,7 @@ function renderFeed(events) {
           <strong style="color:${threatColors[event.threat_type] || threatColors.unknown}">
             ${threatLabels[event.threat_type] || event.threat_type}
           </strong>
-          <div>${event.primary_location || "Локация не распознана"} / ${event.direction}</div>
+          <div>${event.primary_location || "Локация не распознана"} / ${directionText(event)}</div>
           <div class="event-meta">
             ${formatTime(event.observed_at)} · уверенность ${Math.round(event.confidence * 100)}%
             · радиус риска ${event.risk_radius_km} км<br />
@@ -160,24 +258,31 @@ async function fetchJson(url, options) {
 
 async function refresh() {
   try {
-    const [eventsResponse, geojson] = await Promise.all([
+    const [eventsResponse, geojson, telegram] = await Promise.all([
       fetchJson("/api/events"),
       fetchJson("/api/events.geojson"),
+      fetchJson("/api/telegram/status"),
     ]);
     markerLayer.clearLayers();
     directionLayer.clearLayers();
 
-    const events = eventsResponse.events || [];
+    const allEvents = eventsResponse.events || [];
+    const events = allEvents.filter(isKharkivFocused);
+    const visibleEventIds = new Set(events.map((event) => event.id));
     events
       .filter((event) => enabledThreats.has(event.threat_type))
       .forEach((event) => addMarker(event));
 
-    (geojson.features || []).forEach(addDirection);
+    (geojson.features || [])
+      .filter((feature) => visibleEventIds.has(feature.properties.id))
+      .forEach(addDirection);
     renderFeed(events);
-    setStatus(true, `API онлайн · событий: ${events.length}`);
+    setStatus(true, `API онлайн · Харьков фокус: ${events.length} из ${allEvents.length}`);
+    setTelegramStatus(telegram);
   } catch (error) {
     console.error(error);
     setStatus(false, "API недоступен");
+    setTelegramStatus(null);
   }
 }
 

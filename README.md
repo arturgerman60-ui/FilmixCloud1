@@ -2,7 +2,7 @@
 
 Closed, personal situational-awareness MVP that runs as a local website.
 
-Open one local link, paste Telegram-style reports, and see approximate civil-risk markers/directions on a map.
+Open one local link, ingest reports (manual or Telegram), and see approximate civil-risk markers/directions on a map.
 
 This repository contains:
 
@@ -17,11 +17,12 @@ probabilistic zones/corridors with confidence and expiry, not as exact targeting
 ## MVP capabilities
 
 - Run locally at `http://127.0.0.1:8000`.
-- Parse text reports from the web form or API calls.
-- Detect threat type: `shahed`, `uav`, `gerbera`, `kab`, `fpv`, `missile`, `unknown`.
+- Parse text reports from the web form, API calls, or Telegram polling.
+- Detect threat type: `shahed`, `uav`, `gerbera`, `kab`, `fpv`, `recon_drone`, `missile`, `unknown`.
 - Extract known locations and directions from Ukrainian/Russian-language messages.
+- Show direction as approximate heading with angular uncertainty (`±`), not exact route.
 - Produce event records and GeoJSON features for a map.
-- Render approximate markers and direction lines on an online OpenStreetMap/Leaflet map.
+- Render approximate markers and direction lines on a Leaflet map with Kharkiv oblast focus.
 - Keep all deployment private: local machine or locked-down VPS.
 
 ## Local website start
@@ -40,6 +41,26 @@ Then open:
 - API docs: `http://127.0.0.1:8000/docs`
 - Events API: `http://127.0.0.1:8000/api/events`
 - GeoJSON API: `http://127.0.0.1:8000/api/events.geojson`
+- Telegram status: `http://127.0.0.1:8000/api/telegram/status`
+
+## Telegram ingestion setup
+
+Set environment variables before starting backend:
+
+```bash
+export TELEGRAM_ENABLED=1
+export TELEGRAM_API_ID=<your_api_id>
+export TELEGRAM_API_HASH=<your_api_hash>
+export TELEGRAM_SESSION_STRING=<your_telethon_string_session>
+export TELEGRAM_SOURCES="channel_username,chat_username_or_id"
+export TELEGRAM_POLL_SECONDS=20
+```
+
+Notes:
+
+- You must have access rights to listed channels/chats in Telegram.
+- First run establishes the cursor and then ingests only new messages.
+- The UI shows ingestion state in "Telegram ingestion" block.
 
 Seed a demo report from terminal:
 
@@ -57,8 +78,7 @@ Or paste this into the site form:
 
 ## Next production steps
 
-1. Add authenticated Telegram ingestion on the backend (`Telethon` user session or bot where supported).
-2. Replace the demo gazetteer with a complete geocoding source and PostGIS persistence.
-3. Add private authentication before exposing the site outside localhost.
-4. Add push/browser notifications for selected regions.
-5. Run the backend on a locked-down VPS over HTTPS if remote access is needed.
+1. Replace the demo gazetteer with a complete geocoding source and PostGIS persistence.
+2. Add private authentication before exposing the site outside localhost.
+3. Add push/browser notifications for selected regions.
+4. Run the backend on a locked-down VPS over HTTPS if remote access is needed.

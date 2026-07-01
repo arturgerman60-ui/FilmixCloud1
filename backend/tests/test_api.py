@@ -30,6 +30,7 @@ def test_create_report_and_list_events() -> None:
     event = response.json()
     assert event["threat_type"] == "uav"
     assert event["primary_location"] == "кременчук"
+    assert isinstance(event["direction_uncertainty_deg"], int)
 
     list_response = client.get("/api/events")
     assert list_response.status_code == 200
@@ -52,3 +53,13 @@ def test_geojson_returns_feature_collection() -> None:
     assert body["type"] == "FeatureCollection"
     assert len(body["features"]) == 1
     assert body["features"][0]["properties"]["threat_type"] == "kab"
+    assert "direction_uncertainty_deg" in body["features"][0]["properties"]
+
+
+def test_telegram_status_endpoint_exists() -> None:
+    response = client.get("/api/telegram/status")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "enabled" in body
+    assert "configured" in body

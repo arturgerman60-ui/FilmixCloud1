@@ -16,7 +16,7 @@
     <header class="topbar">
       <div>
         <p class="eyebrow">Локальный закрытый MVP</p>
-        <h1>Карта гражданских рисков</h1>
+        <h1>Карта гражданских рисков: Харьков и область</h1>
       </div>
       <div class="status">
         <span id="apiStatus" class="status-dot"></span>
@@ -55,6 +55,14 @@
         </div>
 
         <div class="card">
+          <h2>Telegram ingestion</h2>
+          <p class="muted">
+            Авточтение каналов/чатов через Telethon. Настраивается через переменные окружения backend.
+          </p>
+          <div id="telegramStatus" class="telegram-status">Проверка Telegram...</div>
+        </div>
+
+        <div class="card">
           <h2>Фильтры</h2>
           <div class="filters" id="filters"></div>
         </div>
@@ -71,7 +79,7 @@
       <section class="map-wrap">
         <div id="map"></div>
         <div class="map-note">
-          Данные приблизительные. Это не точная траектория и не инструмент наведения.
+          Прогноз направления отображается с погрешностью ±. Это гражданский ориентир, не точная траектория.
         </div>
       </section>
     </main>
