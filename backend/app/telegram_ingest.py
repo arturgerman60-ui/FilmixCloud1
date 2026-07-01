@@ -6,6 +6,13 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
+try:
+    from bs4 import BeautifulSoup
+
+    BS4_AVAILABLE = True
+except ImportError:  # pragma: no cover - depends on optional runtime package
+    BeautifulSoup = Any  # type: ignore[assignment,misc]
+    BS4_AVAILABLE = False
 
 from app.schemas import ReportIn
 from app.settings import TelegramSettings
@@ -57,8 +64,10 @@ class TelegramIngestor:
             "configured": self.settings.is_configured,
             "bot_configured": self.settings.is_bot_configured,
             "telethon_configured": self.settings.is_telethon_configured,
+            "web_configured": self.settings.is_web_configured,
             "mode": self._mode(),
             "telethon_available": TELETHON_AVAILABLE,
+            "bs4_available": BS4_AVAILABLE,
             "running": self.running,
             "sources": self.settings.sources,
             "ingested_count": self.ingested_count,
@@ -71,6 +80,8 @@ class TelegramIngestor:
             return "bot_api"
         if self.settings.is_telethon_configured:
             return "telethon"
+        if self.settings.is_web_configured:
+            return "web_public"
         return "none"
 
     async def stop(self) -> None:
@@ -93,6 +104,8 @@ class TelegramIngestor:
                 await self._run_bot_api_forever()
             elif self.settings.is_telethon_configured:
                 await self._run_telethon_forever()
+            elif self.settings.is_web_configured:
+                await self._run_web_public_forever()
             else:
                 self.last_error = "telegram settings are incomplete"
         except Exception as exc:  # pragma: no cover - depends on external Telegram I/O
@@ -205,6 +218,93 @@ class TelegramIngestor:
                 await asyncio.wait_for(self._stop_event.wait(), timeout=self.settings.poll_seconds)
             except asyncio.TimeoutError:
                 continue
+
+    async def _run_web_public_forever(self) -> None:
+        if not BS4_AVAILABLE:
+            self.last_error = "beautifulsoup4 is not installed"
+            return
+        self._http = httpx.AsyncClient(timeout=30.0)
+        while not self._stop_event.is_set():
+            for source in self.settings.web_sources:
+                await self._sync_web_source(source)
+            self.last_poll_at = datetime.now(UTC)
+            try:
+                await asyncio.wait_for(self._stop_event.wait(), timeout=self.settings.poll_seconds)
+            except asyncio.TimeoutError:
+                continue
+
+    async def _sync_web_source(self, source: str) -> None:
+        if not self._http:
+            return
+        response = await self._http.get(f"https://t.me/s/{source}")
+        response.raise_for_status()
+        messages = self._extract_web_messages(response.text, fallback_source=source)
+        if not messages:
+            return
+        source_key = f"web:{source}"
+        if source_key not in self._last_seen_message_id:
+            self._last_seen_message_id[source_key] = max(message["message_id"] for message in messages)
+            return
+        last_seen = self._last_seen_message_id[source_key]
+        incoming = sorted(
+            (message for message in messages if message["message_id"] > last_seen),
+            key=lambda item: item["message_id"],
+        )
+        for message in incoming:
+            self._ingest_web_message(message)
+            self._last_seen_message_id[source_key] = max(
+                self._last_seen_message_id[source_key],
+                int(message["message_id"]),
+            )
+
+    def _extract_web_messages(self, html: str, fallback_source: str) -> list[dict[str, Any]]:
+        if not BS4_AVAILABLE:
+            return []
+        soup = BeautifulSoup(html, "html.parser")
+        messages: list[dict[str, Any]] = []
+        for widget in soup.select("div.tgme_widget_message"):
+            data_post = str(widget.get("data-post", ""))
+            if "/" not in data_post:
+                continue
+            source, message_id_raw = data_post.rsplit("/", 1)
+            if not message_id_raw.isdigit():
+                continue
+            text_node = widget.select_one("div.tgme_widget_message_text")
+            if not text_node:
+                continue
+            text = text_node.get_text(" ", strip=True)
+            if not text:
+                continue
+            timestamp_raw = str(widget.get("data-time", ""))
+            observed_at = (
+                datetime.fromtimestamp(int(timestamp_raw), tz=UTC)
+                if timestamp_raw.isdigit()
+                else None
+            )
+            messages.append(
+                {
+                    "source": str(source or fallback_source).lower(),
+                    "message_id": int(message_id_raw),
+                    "text": text,
+                    "observed_at": observed_at,
+                }
+            )
+        return messages
+
+    def _ingest_web_message(self, message: dict[str, Any]) -> None:
+        source = str(message.get("source", "unknown"))
+        message_id = int(message.get("message_id", 0))
+        text = str(message.get("text", "")).strip()
+        if not text:
+            return
+        report = ReportIn(
+            text=text,
+            source=f"tg-web:{source}",
+            source_message_id=f"{source}:{message_id}",
+            observed_at=message.get("observed_at"),
+        )
+        self.store.create_from_report(report)
+        self.ingested_count += 1
 
     async def _sync_entity(self, entity: Any) -> None:
         if not self._client:

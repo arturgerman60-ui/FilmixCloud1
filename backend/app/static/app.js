@@ -137,19 +137,29 @@ function setTelegramStatus(status) {
   }
   if (status.running) {
     telegramStatus.classList.add("ok");
-    const modeLabel = status.mode === "bot_api" ? "Bot API" : "Telethon";
+    const modeLabel =
+      status.mode === "bot_api"
+        ? "Bot API"
+        : status.mode === "web_public"
+          ? "Public t.me"
+          : "Telethon";
     telegramStatus.textContent = `${modeLabel}: ${status.sources.join(", ")} · сообщений: ${status.ingested_count}`;
     return;
   }
   if (!status.configured) {
     telegramStatus.classList.add("warn");
     telegramStatus.textContent =
-      "Telegram включен, но не готов: укажи TELEGRAM_BOT_TOKEN + TELEGRAM_SOURCES (или TELETHON-настройки).";
+      "Telegram включен, но не готов: укажи TELEGRAM_SOURCES и один из режимов (BOT token / Telethon / Public t.me).";
     return;
   }
   if (status.mode === "telethon" && !status.telethon_available) {
     telegramStatus.classList.add("warn");
     telegramStatus.textContent = "Режим Telethon выбран, но пакет telethon не установлен.";
+    return;
+  }
+  if (status.mode === "web_public" && !status.bs4_available) {
+    telegramStatus.classList.add("warn");
+    telegramStatus.textContent = "Режим Public t.me выбран, но пакет beautifulsoup4 не установлен.";
     return;
   }
   telegramStatus.classList.add("error");

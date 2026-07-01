@@ -55,7 +55,7 @@ class TelegramSettings:
 
     @property
     def is_configured(self) -> bool:
-        return self.is_bot_configured or self.is_telethon_configured
+        return self.is_bot_configured or self.is_telethon_configured or self.is_web_configured
 
     @property
     def is_bot_configured(self) -> bool:
@@ -70,6 +70,15 @@ class TelegramSettings:
             and self.session_string
             and self.sources
         )
+
+    @property
+    def web_sources(self) -> list[str]:
+        # Web fallback can ingest only public channel usernames (not numeric IDs).
+        return [source for source in self.sources if source and not source.startswith("-")]
+
+    @property
+    def is_web_configured(self) -> bool:
+        return bool(self.enabled and self.web_sources)
 
 
 def load_telegram_settings() -> TelegramSettings:

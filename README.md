@@ -69,6 +69,16 @@ export TELEGRAM_SESSION_STRING=<your_telethon_string_session>
 export TELEGRAM_SOURCES="channel_username,chat_username_or_id"
 ```
 
+No-bot fallback for public channels:
+
+```bash
+export TELEGRAM_ENABLED=1
+export TELEGRAM_SOURCES="monitor_ukr,cxidua,war_monitor,https://t.me/another_public_channel"
+export TELEGRAM_POLL_SECONDS=20
+```
+
+In this mode backend polls `https://t.me/s/<channel>` directly and ingests new public posts.
+
 General notes:
 
 - You must have access rights to listed channels/chats in Telegram.
