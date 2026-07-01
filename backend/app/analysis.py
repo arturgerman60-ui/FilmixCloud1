@@ -54,18 +54,23 @@ def detect_direction(text: str) -> tuple[Direction, str | None]:
 
 def extract_locations(text: str) -> list[str]:
     normalized = normalize_location(text)
-    matches: list[tuple[str, str]] = []
+    matches: list[tuple[int, int, str]] = []
     search_names = set(GAZETTEER) | set(LOCATION_ALIASES)
     for name in search_names:
-        if name in normalized:
-            matches.append((name, LOCATION_ALIASES.get(name, name)))
-    ordered = sorted(matches, key=lambda item: (normalized.find(item[0]), -len(item[0])))
+        start = normalized.find(name)
+        if start >= 0:
+            matches.append((start, start + len(name), LOCATION_ALIASES.get(name, name)))
+    ordered = sorted(matches, key=lambda item: (item[0], -(item[1] - item[0])))
     seen: set[str] = set()
+    selected_spans: list[tuple[int, int]] = []
     locations: list[str] = []
-    for _, canonical in ordered:
+    for start, end, canonical in ordered:
         if canonical in seen:
             continue
+        if any(start < selected_end and end > selected_start for selected_start, selected_end in selected_spans):
+            continue
         seen.add(canonical)
+        selected_spans.append((start, end))
         locations.append(canonical)
     return locations
 
