@@ -10,6 +10,8 @@ const ThreatMap = dynamic(() => import("@/components/ThreatMap"), { ssr: false }
 
 const ALL_TYPES = Object.keys(THREAT_LABELS) as ThreatType[];
 
+type MobileTab = "map" | "list";
+
 export default function Dashboard() {
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [enabledTypes, setEnabledTypes] = useState<Set<ThreatType>>(
@@ -17,6 +19,7 @@ export default function Dashboard() {
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [mobileTab, setMobileTab] = useState<MobileTab>("map");
   const lastAlert = useRef<"green" | "orange" | "red">("green");
 
   useEffect(() => {
@@ -29,9 +32,7 @@ export default function Dashboard() {
       }
       lastAlert.current = data.alertLevel;
     };
-    source.onerror = () => {
-      source.close();
-    };
+    source.onerror = () => source.close();
     return () => source.close();
   }, [soundEnabled]);
 
@@ -52,10 +53,15 @@ export default function Dashboard() {
     });
   }
 
+  function selectTrack(id: string) {
+    setSelectedId(id);
+    setMobileTab("map");
+  }
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#04070f] text-white">
+    <div className="mobile-shell relative min-h-[100dvh] overflow-hidden bg-[#04070f] text-white">
       <div className="particles pointer-events-none absolute inset-0" />
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1600px] flex-col gap-4 p-3 md:p-5">
+      <div className="relative z-10 mx-auto flex min-h-[100dvh] max-w-[1600px] flex-col gap-3 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:gap-4 md:p-5">
         <TopBar
           alertLevel={snapshot?.alertLevel ?? "green"}
           activeCount={tracks.length}
@@ -65,19 +71,40 @@ export default function Dashboard() {
           onToggleSound={() => setSoundEnabled((v) => !v)}
         />
 
+        <div className="mobile-tabs flex gap-2 xl:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileTab("map")}
+            className={`mobile-tab ${mobileTab === "map" ? "mobile-tab--active" : ""}`}
+          >
+            Карта
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab("list")}
+            className={`mobile-tab ${mobileTab === "list" ? "mobile-tab--active" : ""}`}
+          >
+            Цілі ({tracks.length})
+          </button>
+        </div>
+
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[360px_1fr]">
-          <aside className="glass-panel flex max-h-[42vh] flex-col gap-3 overflow-hidden rounded-3xl p-4 xl:max-h-none">
+          <aside
+            className={`glass-panel flex flex-col gap-3 overflow-hidden rounded-3xl p-4 xl:max-h-none ${
+              mobileTab === "list" ? "flex" : "hidden xl:flex"
+            }`}
+          >
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-200/80">
                 Активні цілі
               </h2>
               <span className="text-xs text-slate-400">{tracks.length} live</span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-2">
               {ALL_TYPES.map((type) => (
                 <label
                   key={type}
-                  className="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-2 py-1.5 text-xs"
+                  className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-2 py-2 text-xs"
                 >
                   <input
                     type="checkbox"
@@ -99,7 +126,7 @@ export default function Dashboard() {
                     key={track.id}
                     track={track}
                     selected={selectedTrack?.id === track.id}
-                    onSelect={setSelectedId}
+                    onSelect={selectTrack}
                   />
                 ))
               )}
@@ -119,7 +146,11 @@ export default function Dashboard() {
             </div>
           </aside>
 
-          <section className="relative min-h-[58vh] xl:min-h-0">
+          <section
+            className={`relative min-h-[52dvh] xl:min-h-0 ${
+              mobileTab === "map" ? "block" : "hidden xl:block"
+            }`}
+          >
             <ThreatMap
               tracks={tracks}
               enabledTypes={enabledTypes}
@@ -127,15 +158,17 @@ export default function Dashboard() {
               onSelect={setSelectedId}
             />
             {selectedTrack && (
-              <div className="glass-panel absolute bottom-4 left-4 right-4 rounded-2xl p-3 md:right-auto md:max-w-md">
-                <div className="text-xs uppercase tracking-[0.18em] text-cyan-200/70">
+              <div className="glass-panel absolute bottom-3 left-3 right-3 rounded-2xl p-3 md:bottom-4 md:left-4 md:right-auto md:max-w-md">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-200/70">
                   Обрана ціль
                 </div>
-                <div className="mt-1 text-lg font-semibold">
+                <div className="mt-1 text-base font-semibold md:text-lg">
                   {THREAT_LABELS[selectedTrack.threatType]} ·{" "}
                   {selectedTrack.primaryLocation ?? "невідома локація"}
                 </div>
-                <p className="mt-1 text-sm text-slate-300">{selectedTrack.rawText}</p>
+                <p className="mt-1 line-clamp-3 text-sm text-slate-300">
+                  {selectedTrack.rawText}
+                </p>
               </div>
             )}
           </section>

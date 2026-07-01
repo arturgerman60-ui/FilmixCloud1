@@ -28,18 +28,18 @@ export default function TopBar({
   onToggleSound,
 }: Props) {
   return (
-    <header className="glass-panel flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3">
+    <header className="glass-panel flex flex-col gap-3 rounded-2xl px-3 py-3 md:flex-row md:items-center md:justify-between md:px-4">
       <div>
-        <p className="text-xs uppercase tracking-[0.28em] text-cyan-300/80">
+        <p className="text-[10px] uppercase tracking-[0.22em] text-cyan-300/80 md:tracking-[0.28em]">
           Ukraine Air Threat Monitor 2026
         </p>
-        <h1 className="text-xl font-semibold text-white md:text-2xl">
-          Реал-тайм моніторинг повітряних загроз
+        <h1 className="text-lg font-semibold leading-tight text-white md:text-2xl">
+          Моніторинг повітряних загроз
         </h1>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 md:gap-3">
         <div
-          className="rounded-full px-4 py-2 text-sm font-semibold"
+          className="rounded-full px-3 py-2 text-xs font-semibold md:px-4 md:text-sm"
           style={{
             color: ALERT_COLORS[alertLevel],
             background: `${ALERT_COLORS[alertLevel]}22`,
