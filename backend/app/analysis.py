@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from app.geo import GAZETTEER, lookup_coordinate, normalize_location
+from app.geo import GAZETTEER, LOCATION_ALIASES, lookup_coordinate, normalize_location
 from app.schemas import AnalyzedReport, Direction, ThreatType
 
 
@@ -54,11 +54,20 @@ def detect_direction(text: str) -> tuple[Direction, str | None]:
 
 def extract_locations(text: str) -> list[str]:
     normalized = normalize_location(text)
-    hits: list[str] = []
-    for name in GAZETTEER:
+    matches: list[tuple[str, str]] = []
+    search_names = set(GAZETTEER) | set(LOCATION_ALIASES)
+    for name in search_names:
         if name in normalized:
-            hits.append(name)
-    return sorted(set(hits), key=lambda value: normalized.find(value))
+            matches.append((name, LOCATION_ALIASES.get(name, name)))
+    ordered = sorted(matches, key=lambda item: (normalized.find(item[0]), -len(item[0])))
+    seen: set[str] = set()
+    locations: list[str] = []
+    for _, canonical in ordered:
+        if canonical in seen:
+            continue
+        seen.add(canonical)
+        locations.append(canonical)
+    return locations
 
 
 def confidence_score(

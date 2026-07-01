@@ -10,6 +10,13 @@ def setup_function() -> None:
     store.clear()
 
 
+def test_index_serves_local_website() -> None:
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "Карта гражданских рисков" in response.text
+
+
 def test_create_report_and_list_events() -> None:
     response = client.post(
         "/api/reports",

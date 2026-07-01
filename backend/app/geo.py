@@ -32,6 +32,15 @@ GAZETTEER: dict[str, Coordinate] = {
 }
 
 
+LOCATION_ALIASES: dict[str, str] = {
+    "миколаївщину": "миколаївщина",
+    "николаевщину": "николаевщина",
+    "харківського": "харків",
+    "харьковского": "харьков",
+    "полтавщину": "полтава",
+}
+
+
 DIRECTION_BEARINGS: dict[Direction, float] = {
     Direction.NORTH: 0,
     Direction.NORTHEAST: 45,
@@ -49,7 +58,9 @@ def normalize_location(text: str) -> str:
 
 
 def lookup_coordinate(location: str) -> Coordinate | None:
-    return GAZETTEER.get(normalize_location(location))
+    normalized = normalize_location(location)
+    canonical = LOCATION_ALIASES.get(normalized, normalized)
+    return GAZETTEER.get(canonical)
 
 
 def risk_radius_km(threat_type: ThreatType, confidence: float) -> float:
