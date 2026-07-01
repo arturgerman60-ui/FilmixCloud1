@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Private Threat Map</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Локальный закрытый MVP</p>
+        <h1>Карта гражданских рисков: Харьков и область</h1>
+      </div>
+      <div class="status">
+        <span id="apiStatus" class="status-dot"></span>
+        <span id="apiStatusText">Проверка API...</span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="card quickstart">
+          <h2>Быстрый старт (телефон)</h2>
+          <ol>
+            <li>Нажми <strong>Демо</strong>, чтобы увидеть как это выглядит.</li>
+            <li>Вставляй сообщения из источников в форму ниже.</li>
+            <li>Смотри маркеры и направление на карте как прогноз <strong>±</strong>.</li>
+          </ol>
+        </div>
+
+        <div class="card">
+          <h2>Добавить сообщение</h2>
+          <p class="muted">
+            Вставь текст из источника. Система покажет приблизительную зону/направление с уровнем уверенности.
+          </p>
+          <form id="reportForm">
+            <label>
+              Источник
+              <input id="sourceInput" name="source" value="manual" maxlength="120" />
+            </label>
+            <label>
+              Текст сообщения
+              <textarea
+                id="textInput"
+                name="text"
+                rows="5"
+                placeholder="Например: Шахед через Миколаївщину курсом на північний захід"
+                required
+              ></textarea>
+            </label>
+            <div class="actions">
+              <button type="submit">Добавить на карту</button>
+              <button type="button" class="secondary" id="demoButton">Демо</button>
+              <button type="button" class="danger" id="clearButton">Очистить</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Telegram ingestion</h2>
+          <p class="muted">
+            Авточтение каналов/чатов через Bot API (проще) или Telethon. Настраивается через переменные окружения backend.
+          </p>
+          <div id="telegramStatus" class="telegram-status">Проверка Telegram...</div>
+          <details class="telegram-requirements">
+            <summary>Что нужно, чтобы подключить Telegram</summary>
+            <ul>
+              <li><strong>Проще:</strong> <code>TELEGRAM_BOT_TOKEN</code> + <code>TELEGRAM_SOURCES</code></li>
+              <li><strong>Альтернатива:</strong> <code>TELEGRAM_API_ID</code> + <code>TELEGRAM_API_HASH</code> + <code>TELEGRAM_SESSION_STRING</code></li>
+              <li><strong>Если бота нельзя добавить:</strong> только <code>TELEGRAM_SOURCES</code> для публичных каналов (режим Public t.me)</li>
+              <li><code>TELEGRAM_SOURCES</code>: username/id/ссылки каналов и чатов через запятую</li>
+            </ul>
+          </details>
+        </div>
+
+        <div class="card">
+          <h2>Фильтры</h2>
+          <div class="filters" id="filters"></div>
+        </div>
+
+        <div class="card feed-card">
+          <div class="feed-title">
+            <h2>Лента</h2>
+            <button type="button" class="secondary small" id="refreshButton">Обновить</button>
+          </div>
+          <div id="feed" class="feed"></div>
+        </div>
+      </section>
+
+      <section class="map-wrap">
+        <div id="map"></div>
+        <div class="map-note">
+          Карта обновляется автоматически каждые 5 секунд. Траектория — прогноз с погрешностью ±.
+        </div>
+      </section>
+    </main>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    ></script>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
