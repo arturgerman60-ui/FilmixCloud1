@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ t('dashboard') }} — InvoiceForge{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ t('dashboard') }}</h1>
+  <div class="head-actions">
+    <a href="/documents/new?type=invoice" class="btn btn-primary">+ {{ t('new_invoice') }}</a>
+    <a href="/documents/new?type=proposal" class="btn btn-ghost">+ {{ t('new_proposal') }}</a>
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <span class="stat-label">{{ t('revenue') }}</span>
+    <span class="stat-value">{{ format_money(stats.revenue, company.currency) }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">{{ t('outstanding') }}</span>
+    <span class="stat-value">{{ format_money(stats.outstanding, company.currency) }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">{{ t('documents') }}</span>
+    <span class="stat-value">{{ stats.documents }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">{{ t('clients_count') }}</span>
+    <span class="stat-value">{{ stats.clients }}</span>
+  </div>
+</div>
+
+<div class="card">
+  <h2>{{ t('recent') }}</h2>
+  {% if recent %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>{{ t('number') }}</th><th>{{ t('client') }}</th>
+        <th>{{ t('date') }}</th><th>{{ t('status') }}</th><th class="right">{{ t('total') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in recent %}
+      <tr onclick="location.href='/documents/{{ row.doc.id }}'">
+        <td><strong>{{ row.doc.number }}</strong></td>
+        <td>{{ row.client.name if row.client else '—' }}</td>
+        <td>{{ row.doc.issue_date }}</td>
+        <td><span class="status status-{{ row.doc.status }}">{{ t(row.doc.status) }}</span></td>
+        <td class="right">{{ format_money(row.total, row.doc.currency) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Пока нет документов. Создайте первый счёт.</p>
+  {% endif %}
+</div>
+{% endblock %}

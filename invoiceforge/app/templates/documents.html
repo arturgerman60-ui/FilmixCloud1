@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ t('invoices') if doc_type == 'invoice' else t('proposals') }} — InvoiceForge{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ t('invoices') if doc_type == 'invoice' else t('proposals') }}</h1>
+  <a href="/documents/new?type={{ doc_type }}" class="btn btn-primary">
+    + {{ t('new_invoice') if doc_type == 'invoice' else t('new_proposal') }}
+  </a>
+</div>
+
+<div class="card">
+  {% if rows %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>{{ t('number') }}</th><th>{{ t('client') }}</th><th>{{ t('date') }}</th>
+        <th>{{ t('status') }}</th><th class="right">{{ t('total') }}</th><th class="right">{{ t('actions') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td><a href="/documents/{{ row.doc.id }}"><strong>{{ row.doc.number }}</strong></a></td>
+        <td>{{ row.client.name if row.client else '—' }}</td>
+        <td>{{ row.doc.issue_date }}</td>
+        <td><span class="status status-{{ row.doc.status }}">{{ t(row.doc.status) }}</span></td>
+        <td class="right">{{ format_money(row.total, row.doc.currency) }}</td>
+        <td class="right nowrap">
+          <a href="/documents/{{ row.doc.id }}/print" class="btn btn-sm btn-ghost" target="_blank">PDF</a>
+          <a href="/documents/{{ row.doc.id }}/edit" class="btn btn-sm btn-ghost">{{ t('edit') }}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Пока нет документов этого типа.</p>
+  {% endif %}
+</div>
+{% endblock %}

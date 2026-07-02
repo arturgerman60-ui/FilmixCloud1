@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ t('settings') }} — InvoiceForge{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ t('settings') }}</h1>
+</div>
+
+{% if saved %}<div class="alert alert-ok">Сохранено.</div>{% endif %}
+
+<div class="card">
+  <form method="post" action="/settings">
+    <div class="form-grid">
+      <label>Название компании
+        <input name="company_name" value="{{ company.company_name }}" />
+      </label>
+      <label>Владелец / ФОП
+        <input name="owner_name" value="{{ company.owner_name }}" />
+      </label>
+      <label>{{ t('tax_id') }}
+        <input name="tax_id" value="{{ company.tax_id }}" />
+      </label>
+      <label>{{ t('phone') }}
+        <input name="phone" value="{{ company.phone }}" />
+      </label>
+      <label>{{ t('email') }}
+        <input name="email" value="{{ company.email }}" />
+      </label>
+      <label>{{ t('address') }}
+        <input name="address" value="{{ company.address }}" />
+      </label>
+      <label>Валюта по умолчанию
+        <select name="currency">
+          {% for cur in ['UAH','USD','EUR','PLN','GBP','RUB'] %}
+          <option value="{{ cur }}" {{ 'selected' if company.currency == cur else '' }}>{{ cur }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Налог по умолчанию, %
+        <input type="number" step="0.01" name="tax_rate" value="{{ company.tax_rate }}" />
+      </label>
+      <label>Префикс счетов
+        <input name="invoice_prefix" value="{{ company.invoice_prefix }}" />
+      </label>
+      <label>Префикс КП
+        <input name="proposal_prefix" value="{{ company.proposal_prefix }}" />
+      </label>
+      <label>Язык
+        <select name="language">
+          <option value="ru" {{ 'selected' if company.language == 'ru' else '' }}>Русский</option>
+          <option value="uk" {{ 'selected' if company.language == 'uk' else '' }}>Українська</option>
+          <option value="en" {{ 'selected' if company.language == 'en' else '' }}>English</option>
+        </select>
+      </label>
+      <label>Акцентный цвет
+        <input type="color" name="accent_color" value="{{ company.accent_color }}" />
+      </label>
+      <label class="span-2">Банковские реквизиты (для PDF)
+        <textarea name="bank_details" rows="3">{{ company.bank_details }}</textarea>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{{ t('save') }}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

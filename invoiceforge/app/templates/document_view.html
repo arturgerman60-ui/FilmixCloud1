@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ document.number }} — InvoiceForge{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ document.number }}</h1>
+  <div class="head-actions">
+    <a href="/documents/{{ document.id }}/print" target="_blank" class="btn btn-primary">{{ t('print') }}</a>
+    <a href="/documents/{{ document.id }}/edit" class="btn btn-ghost">{{ t('edit') }}</a>
+    <form method="post" action="/documents/{{ document.id }}/delete" class="inline"
+          onsubmit="return confirm('Удалить документ?')">
+      <button class="btn btn-danger" type="submit">{{ t('delete') }}</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="doc-meta">
+    <div>
+      <span class="muted small">{{ t('client') }}</span>
+      <strong>{{ client.name if client else '—' }}</strong>
+      <div class="muted small">{{ client.company }}</div>
+    </div>
+    <div>
+      <span class="muted small">{{ t('date') }}</span>
+      <strong>{{ document.issue_date }}</strong>
+    </div>
+    <div>
+      <span class="muted small">{{ t('status') }}</span>
+      <form method="post" action="/documents/{{ document.id }}/status" class="inline">
+        <select name="status" onchange="this.form.submit()">
+          {% for s in statuses %}
+          <option value="{{ s }}" {{ 'selected' if document.status == s else '' }}>{{ t(s) }}</option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr><th>Описание</th><th class="right">Кол-во</th><th class="right">Цена</th><th class="right">Сумма</th></tr>
+    </thead>
+    <tbody>
+      {% for it in items %}
+      <tr>
+        <td>{{ it.description }}</td>
+        <td class="right">{{ it.quantity }}</td>
+        <td class="right">{{ format_money(it.unit_price, document.currency) }}</td>
+        <td class="right">{{ format_money(it.quantity * it.unit_price, document.currency) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div><span>Подытог</span><strong>{{ format_money(totals.subtotal, document.currency) }}</strong></div>
+    {% if totals.discount %}<div><span>Скидка</span><strong>−{{ format_money(totals.discount, document.currency) }}</strong></div>{% endif %}
+    {% if totals.tax %}<div><span>Налог {{ document.tax_rate }}%</span><strong>{{ format_money(totals.tax, document.currency) }}</strong></div>{% endif %}
+    <div class="grand"><span>{{ t('total') }}</span><strong>{{ format_money(totals.total, document.currency) }}</strong></div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Активация — InvoiceForge{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ t('activate') }}</h1>
+</div>
+
+<div class="card">
+  {% if license.is_pro %}
+    <div class="alert alert-ok">Лицензия активна. План: PRO.</div>
+  {% else %}
+    <p class="muted">Вставьте лицензионный ключ, полученный от продавца, чтобы снять ограничения демо-версии.</p>
+  {% endif %}
+  {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+  <form method="post" action="/activate">
+    <label>Лицензионный ключ
+      <textarea name="license_key" rows="4" placeholder="IFG1.xxxxx.yyyyy" required></textarea>
+    </label>
+    <button type="submit" class="btn btn-primary">{{ t('activate') }}</button>
+  </form>
+  <hr />
+  <p class="muted small">ID этого компьютера (для привязки лицензии): <code>{{ machine }}</code></p>
+</div>
+{% endblock %}

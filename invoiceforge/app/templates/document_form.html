@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}{{ t('new_invoice') if doc_type == 'invoice' else t('new_proposal') }} — InvoiceForge{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ (t('invoices') if doc_type == 'invoice' else t('proposals')) }} · {{ t('edit') if document else t('save') }}</h1>
+</div>
+
+{% if limit_error %}<div class="alert alert-error">{{ limit_error }}</div>{% endif %}
+
+<div class="card">
+  <form method="post" action="{{ '/documents/' ~ document.id if document else '/documents' }}">
+    <input type="hidden" name="doc_type" value="{{ doc_type }}" />
+    <div class="form-grid">
+      <label>{{ t('client') }}*
+        <select name="client_id" required>
+          <option value="">— выберите —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}" {{ 'selected' if document and document.client_id == c.id else '' }}>
+            {{ c.name }}{{ ' · ' ~ c.company if c.company else '' }}
+          </option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>{{ t('status') }}
+        <select name="status">
+          {% for s in statuses %}
+          <option value="{{ s }}" {{ 'selected' if document and document.status == s else '' }}>{{ t(s) }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>{{ t('date') }}
+        <input type="date" name="issue_date" value="{{ document.issue_date if document else today }}" />
+      </label>
+      <label>Срок оплаты
+        <input type="date" name="due_date" value="{{ document.due_date if document and document.due_date else '' }}" />
+      </label>
+      <label>Валюта
+        <select name="currency">
+          {% for cur in ['UAH','USD','EUR','PLN','GBP','RUB'] %}
+          <option value="{{ cur }}" {{ 'selected' if (document.currency if document else company.currency) == cur else '' }}>{{ cur }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Налог, %
+        <input type="number" step="0.01" name="tax_rate" value="{{ document.tax_rate if document else company.tax_rate }}" />
+      </label>
+      <label>Скидка ({{ currency_symbol((document.currency if document else company.currency)) }})
+        <input type="number" step="0.01" name="discount" value="{{ document.discount if document else 0 }}" />
+      </label>
+    </div>
+
+    <h3>Позиции</h3>
+    <table class="table items-table" id="items-table">
+      <thead>
+        <tr><th>Описание</th><th class="w-qty">Кол-во</th><th class="w-price">Цена</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% if items %}
+          {% for it in items %}
+          <tr>
+            <td><input name="item_description" value="{{ it.description }}" placeholder="Товар / услуга" /></td>
+            <td><input name="item_quantity" type="number" step="0.01" value="{{ it.quantity }}" /></td>
+            <td><input name="item_price" type="number" step="0.01" value="{{ it.unit_price }}" /></td>
+            <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">×</button></td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td><input name="item_description" placeholder="Товар / услуга" /></td>
+            <td><input name="item_quantity" type="number" step="0.01" value="1" /></td>
+            <td><input name="item_price" type="number" step="0.01" value="0" /></td>
+            <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">×</button></td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="addRow()">+ Добавить позицию</button>
+
+    <label class="mt">{{ t('notes') }}
+      <textarea name="notes" rows="2">{{ document.notes if document else '' }}</textarea>
+    </label>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{{ t('save') }}</button>
+      <a href="/documents?type={{ doc_type }}" class="btn btn-ghost">Отмена</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
