@@ -1,0 +1,50 @@
+name: Build FunPay Assistant (Windows)
+
+# Собирает готовый установщик FunPayAssistant-Setup.exe на Windows-раннере.
+# Скачать результат: вкладка Actions → последний запуск → раздел Artifacts.
+
+on:
+  push:
+    branches: [ "cursor/funpay-assistant-4baa", "main" ]
+    paths: [ "funpay-assistant/**", ".github/workflows/build-windows.yml" ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: funpay-assistant
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build EXE (PyInstaller)
+        run: pyinstaller build/funpay_assistant.spec --noconfirm
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer (Inno Setup)
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\installer.iss'
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FunPayAssistant-Setup
+          path: funpay-assistant/dist_installer/FunPayAssistant-Setup.exe
+
+      - name: Upload raw exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FunPayAssistant-exe
+          path: funpay-assistant/dist/FunPayAssistant.exe
