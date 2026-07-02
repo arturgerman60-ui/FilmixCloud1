@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+*.spec.bak
+.venv/
+venv/
+env/
+
+# App data (runtime-generated)
+data/*.json
+data/*.db
+data/logs/
+data/sessions/
+data/*.log
+
+# Secrets
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# PyInstaller
+*.spec.autosave

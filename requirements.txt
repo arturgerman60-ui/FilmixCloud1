@@ -1,0 +1,33 @@
+# ==========================================================================
+# FunPay AutoResponder — Python dependencies
+# Python 3.11+ required
+# ==========================================================================
+
+# --- UI ---
+customtkinter==5.2.2
+CTkMessagebox==2.7
+CTkToolTip==0.8
+darkdetect==0.8.0
+Pillow==10.4.0
+
+# --- System tray ---
+pystray==0.19.5
+
+# --- Browser automation (FunPay) ---
+playwright==1.47.0
+
+# --- Storage ---
+tinydb==4.8.2
+
+# --- Scheduling ---
+APScheduler==3.10.4
+
+# --- Security / config ---
+python-dotenv==1.0.1
+keyring==25.4.1
+
+# --- HTTP (AI backends: Ollama / LM Studio, updates, proxy checks) ---
+requests==2.32.3
+
+# --- Packaging (build only) ---
+pyinstaller==6.10.0
