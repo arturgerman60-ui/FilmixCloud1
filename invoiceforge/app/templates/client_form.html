@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ t('clients') }} — InvoiceForge{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ t('edit') if client else t('add_client') }}</h1>
+</div>
+
+<div class="card">
+  <form method="post" action="{{ '/clients/' ~ client.id if client else '/clients' }}">
+    <div class="form-grid">
+      <label>{{ t('name') }}*
+        <input name="name" required value="{{ client.name if client else '' }}" />
+      </label>
+      <label>{{ t('company') }}
+        <input name="company" value="{{ client.company if client else '' }}" />
+      </label>
+      <label>{{ t('email') }}
+        <input name="email" type="email" value="{{ client.email if client else '' }}" />
+      </label>
+      <label>{{ t('phone') }}
+        <input name="phone" value="{{ client.phone if client else '' }}" />
+      </label>
+      <label>{{ t('tax_id') }}
+        <input name="tax_id" value="{{ client.tax_id if client else '' }}" />
+      </label>
+      <label class="span-2">{{ t('address') }}
+        <input name="address" value="{{ client.address if client else '' }}" />
+      </label>
+      <label class="span-2">{{ t('notes') }}
+        <textarea name="notes" rows="2">{{ client.notes if client else '' }}</textarea>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{{ t('save') }}</button>
+      <a href="/clients" class="btn btn-ghost">Отмена</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

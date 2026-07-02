@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="{{ company.language }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ document.number }}</title>
+    <link rel="stylesheet" href="/static/print.css" />
+    <style>:root { --accent: {{ company.accent_color }}; }</style>
+  </head>
+  <body class="pdf">
+    {% if show_watermark %}<div class="watermark">DEMO</div>{% endif %}
+
+    <div class="pdf-toolbar no-print">
+      <button onclick="window.print()" class="btn btn-primary">Сохранить как PDF / Печать</button>
+      <a href="/documents/{{ document.id }}" class="btn btn-ghost">Назад</a>
+      <span class="muted small">В диалоге печати выберите «Сохранить как PDF».</span>
+    </div>
+
+    <div class="sheet">
+      <header class="pdf-head">
+        <div>
+          <h1>{{ 'СЧЁТ' if document.doc_type == 'invoice' else 'КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ' }}</h1>
+          <div class="doc-number">№ {{ document.number }}</div>
+          <div class="muted">Дата: {{ document.issue_date }}{% if document.due_date %} · Оплата до: {{ document.due_date }}{% endif %}</div>
+        </div>
+        <div class="pdf-company">
+          <strong>{{ company.company_name }}</strong>
+          {% if company.owner_name %}<div>{{ company.owner_name }}</div>{% endif %}
+          {% if company.tax_id %}<div>{{ t('tax_id') }}: {{ company.tax_id }}</div>{% endif %}
+          {% if company.address %}<div>{{ company.address }}</div>{% endif %}
+          {% if company.phone %}<div>{{ company.phone }}</div>{% endif %}
+          {% if company.email %}<div>{{ company.email }}</div>{% endif %}
+        </div>
+      </header>
+
+      <section class="pdf-parties">
+        <div>
+          <span class="label">Кому:</span>
+          <strong>{{ client.name if client else '—' }}</strong>
+          {% if client and client.company %}<div>{{ client.company }}</div>{% endif %}
+          {% if client and client.tax_id %}<div>{{ t('tax_id') }}: {{ client.tax_id }}</div>{% endif %}
+          {% if client and client.address %}<div>{{ client.address }}</div>{% endif %}
+          {% if client and client.email %}<div>{{ client.email }}</div>{% endif %}
+        </div>
+      </section>
+
+      <table class="pdf-table">
+        <thead>
+          <tr><th>#</th><th>Описание</th><th class="right">Кол-во</th><th class="right">Цена</th><th class="right">Сумма</th></tr>
+        </thead>
+        <tbody>
+          {% for it in items %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ it.description }}</td>
+            <td class="right">{{ it.quantity }}</td>
+            <td class="right">{{ format_money(it.unit_price, document.currency) }}</td>
+            <td class="right">{{ format_money(it.quantity * it.unit_price, document.currency) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="pdf-totals">
+        <div><span>Подытог</span><b>{{ format_money(totals.subtotal, document.currency) }}</b></div>
+        {% if totals.discount %}<div><span>Скидка</span><b>−{{ format_money(totals.discount, document.currency) }}</b></div>{% endif %}
+        {% if totals.tax %}<div><span>Налог {{ document.tax_rate }}%</span><b>{{ format_money(totals.tax, document.currency) }}</b></div>{% endif %}
+        <div class="grand"><span>ИТОГО</span><b>{{ format_money(totals.total, document.currency) }}</b></div>
+      </div>
+
+      {% if company.bank_details %}
+      <section class="pdf-bank">
+        <span class="label">Реквизиты для оплаты:</span>
+        <div>{{ company.bank_details }}</div>
+      </section>
+      {% endif %}
+
+      {% if document.notes %}
+      <section class="pdf-notes"><span class="label">Примечание:</span> {{ document.notes }}</section>
+      {% endif %}
+
+      <footer class="pdf-foot muted small">Документ сформирован в InvoiceForge</footer>
+    </div>
+
+    <script>
+      if (new URLSearchParams(location.search).get("auto") === "1") {
+        window.addEventListener("load", () => setTimeout(() => window.print(), 400));
+      }
+    </script>
+  </body>
+</html>

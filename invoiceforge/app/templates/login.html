@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="{{ company.language }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>InvoiceForge — вход</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body class="auth-body">
+    <form class="auth-card" method="post" action="/login">
+      <div class="auth-logo">IF</div>
+      <h1>InvoiceForge</h1>
+      <p class="muted">Генератор счетов и коммерческих предложений</p>
+      {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+      <label>Пароль
+        <input type="password" name="password" autofocus required placeholder="Введите пароль" />
+      </label>
+      <button type="submit" class="btn btn-primary btn-block">Войти</button>
+      <p class="muted small">Пароль по умолчанию: <code>admin</code> (смените в .env)</p>
+    </form>
+  </body>
+</html>

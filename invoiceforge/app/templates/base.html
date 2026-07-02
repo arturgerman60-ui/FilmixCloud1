@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="{{ company.language }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}InvoiceForge{% endblock %}</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <style>:root { --accent: {{ company.accent_color }}; }</style>
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">IF</span>
+          <div>
+            <strong>InvoiceForge</strong>
+            <small>v{{ app_version }}</small>
+          </div>
+        </div>
+        <nav>
+          <a href="/" class="nav-item">{{ t('dashboard') }}</a>
+          <a href="/clients" class="nav-item">{{ t('clients') }}</a>
+          <a href="/documents?type=invoice" class="nav-item">{{ t('invoices') }}</a>
+          <a href="/documents?type=proposal" class="nav-item">{{ t('proposals') }}</a>
+          <a href="/settings" class="nav-item">{{ t('settings') }}</a>
+        </nav>
+        <div class="sidebar-foot">
+          {% if license.is_pro %}
+            <span class="badge badge-pro">{{ t('pro_mode') }}</span>
+          {% else %}
+            <a href="/activate" class="badge badge-demo">{{ t('demo_mode') }} · {{ t('activate') }}</a>
+          {% endif %}
+          <div class="lang-switch">
+            <a href="/lang/ru">RU</a>
+            <a href="/lang/uk">UK</a>
+            <a href="/lang/en">EN</a>
+          </div>
+          <a href="/logout" class="logout">{{ t('logout') }}</a>
+        </div>
+      </aside>
+
+      <main class="content">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
